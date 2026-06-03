@@ -1,0 +1,26 @@
+# NEVER upload to GitHub
+.env
+.env.example
+.env.local
+.env.production
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+venv/
+env/
+
+# Logs
+appointments.log
+*.log
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db

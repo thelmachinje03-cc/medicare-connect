@@ -1,0 +1,182 @@
+{% extends 'base.html' %}
+
+{% block title %}Reschedule Appointment - MediCare Connect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card-premium animate-fade-in">
+                <div class="card-header-premium text-center bg-light">
+                    <h2 class="text-navy-dark mb-1 fw-800"><i class="bi bi-calendar-event text-blue-bright"></i> Reschedule Appointment</h2>
+                    <p class="text-muted mb-0">Select a new date and time for this consultation.</p>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Current Details Info -->
+                    <div class="alert alert-info border-2 mb-4 d-flex align-items-center">
+                        <i class="bi bi-info-circle-fill fs-3 me-3"></i>
+                        <div>
+                            <h6 class="alert-heading mb-1 fw-bold">Current Schedule</h6>
+                            <p class="mb-0 text-dark-50 fs-09">
+                                <strong>Doctor:</strong> Dr. {{ appointment.doctor_username }}<br>
+                                <strong>Date:</strong> {{ appointment.date.strftime("%b %d, %Y") if hasattr(appointment.date, 'strftime') else appointment.date }}<br>
+                                <strong>Time Slot:</strong> {{ appointment.time.strftime("%I:%M %p") if hasattr(appointment.time, 'strftime') else appointment.time }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <form method="POST" action="{{ url_for('reschedule_appointment', appointment_id=appointment.id) }}" novalidate>
+                        <!-- Secure CSRF Token -->
+                        {{ form.csrf_token }}
+
+                        <div class="row">
+                            <!-- New Date Selection -->
+                            <div class="col-md-6 mb-3">
+                                {{ form.date.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 border-silver-light text-muted"><i class="bi bi-calendar-date"></i></span>
+                                    {{ form.date(class="form-control border-start-0 " + ('is-invalid' if form.date.errors else ''), type="date") }}
+                                    {% if form.date.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.date.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- New Time Slot Selection -->
+                            <div class="col-md-6 mb-3">
+                                {{ form.time.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 border-silver-light text-muted"><i class="bi bi-clock"></i></span>
+                                    {{ form.time(class="form-select border-start-0 " + ('is-invalid' if form.time.errors else '')) }}
+                                    {% if form.time.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.time.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Interactive Buttons -->
+                        <div class="d-flex gap-3 mt-4">
+                            {% if session.get('role') == 'patient' %}
+                                <a href="{{ url_for('patient_dashboard') }}" class="btn btn-premium-secondary flex-grow-1 text-center">
+                                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                                </a>
+                            {% else %}
+                                <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-premium-secondary flex-grow-1 text-center">
+                                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                                </a>
+                            {% endif %}
+                            
+                            <button type="submit" class="btn btn-premium flex-grow-1">
+                                <i class="bi bi-check-circle-fill me-2"></i> Save Reschedule
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ csp_nonce() }}">
+    document.addEventListener("DOMContentLoaded", function() {
+        const dateInput = document.getElementById("date");
+        const timeSelect = document.getElementById("time");
+        const doctorId = "{{ appointment.doctor_id }}";
+        
+        // Retain selected time on reload if form fails server validation
+        const previousSelectedTime = "{{ form.time.data or '' }}";
+
+        function fetchAvailableTimes() {
+            const dateValue = dateInput.value;
+
+            if (!dateValue) {
+                timeSelect.innerHTML = '<option value="">-- Select Date First --</option>';
+                return;
+            }
+
+            timeSelect.innerHTML = '<option value="">Loading slots...</option>';
+
+            fetch(`/get_available_times?doctor_id=${doctorId}&date=${dateValue}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Network response was not ok");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    timeSelect.innerHTML = "";
+
+                    if (data.error) {
+                        timeSelect.innerHTML = `<option value="">Error: ${data.error}</option>`;
+                        return;
+                    }
+
+                    const slots = data.available_times;
+                    
+                    // Rescheduling edge case: If the date matches current appointment date, 
+                    // we must ensure the appointment's own slot is always included as an option!
+                    const currentAppDate = "{{ appointment.date.strftime('%Y-%m-%d') if hasattr(appointment.date, 'strftime') else appointment.date }}";
+                    const currentAppTime = "{{ appointment.time.strftime('%H:%M') if hasattr(appointment.time, 'strftime') else appointment.time[:5] }}";
+                    
+                    if (dateValue === currentAppDate && !slots.includes(currentAppTime)) {
+                        slots.push(currentAppTime);
+                        slots.sort(); // keep in chronological order
+                    }
+
+                    if (slots.length === 0) {
+                        timeSelect.innerHTML = '<option value="">No slots available</option>';
+                        return;
+                    }
+
+                    // Add empty placeholder option
+                    const placeholder = document.createElement("option");
+                    placeholder.value = "";
+                    placeholder.textContent = "-- Select Time Slot --";
+                    timeSelect.appendChild(placeholder);
+
+                    slots.forEach(slot => {
+                        const opt = document.createElement("option");
+                        opt.value = slot;
+
+                        // Formatting 24h string to 12h elegant presentation
+                        const parts = slot.split(":");
+                        const hour = parseInt(parts[0], 10);
+                        const mins = parts[1];
+                        const ampm = hour >= 12 ? "PM" : "AM";
+                        const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+                        
+                        opt.textContent = `${displayHour.toString().padStart(2, '0')}:${mins} ${ampm}`;
+                        
+                        // Select slot if it matches previously selected (or current slot as initial state)
+                        if (slot === previousSelectedTime || (slot === currentAppTime && dateValue === currentAppDate && !previousSelectedTime)) {
+                            opt.selected = true;
+                        }
+
+                        timeSelect.appendChild(opt);
+                    });
+                })
+                .catch(error => {
+                    console.error("Error fetching times:", error);
+                    timeSelect.innerHTML = '<option value="">Error loading slots</option>';
+                });
+        }
+
+        // Add Change Event Listener
+        dateInput.addEventListener("change", fetchAvailableTimes);
+
+        // Execute initially
+        fetchAvailableTimes();
+    });
+</script>
+{% endblock %}

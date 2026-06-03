@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+
+{% block title %}Register - MediCare Connect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            <div class="card-premium">
+                <div class="card-header-premium text-center">
+                    <h2 class="text-navy-dark mb-1 fw-800"><i class="bi bi-person-plus-fill text-blue-bright"></i> Create Account</h2>
+                    <p class="text-muted mb-0">Join our healthcare network platform</p>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('register') }}" novalidate>
+                        <!-- CSRF Token -->
+                        {{ form.csrf_token }}
+
+                        <div class="row">
+                            <!-- Username Field -->
+                            <div class="col-md-6 mb-3">
+                                {{ form.username.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 border-silver-light text-muted"><i class="bi bi-person"></i></span>
+                                    {{ form.username(class="form-control border-start-0 " + ('is-invalid' if form.username.errors else ''), placeholder="Enter username") }}
+                                    {% if form.username.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.username.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Email Field -->
+                            <div class="col-md-6 mb-3">
+                                {{ form.email.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 border-silver-light text-muted"><i class="bi bi-envelope"></i></span>
+                                    {{ form.email(class="form-control border-start-0 " + ('is-invalid' if form.email.errors else ''), placeholder="Enter email address") }}
+                                    {% if form.email.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.email.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Phone Field -->
+                            <div class="col-md-12 mb-3">
+                                {{ form.phone.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 border-silver-light text-muted"><i class="bi bi-telephone"></i></span>
+                                    {{ form.phone(class="form-control border-start-0 " + ('is-invalid' if form.phone.errors else ''), placeholder="e.g., 677123456") }}
+                                    {% if form.phone.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.phone.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <!-- Password Field -->
+                            <div class="col-md-6 mb-3">
+                                {{ form.password.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 border-silver-light text-muted"><i class="bi bi-key"></i></span>
+                                    {{ form.password(class="form-control border-start-0 " + ('is-invalid' if form.password.errors else ''), placeholder="Enter password") }}
+                                    {% if form.password.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.password.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Confirm Password Field -->
+                            <div class="col-md-6 mb-4">
+                                {{ form.confirm_password.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 border-silver-light text-muted"><i class="bi bi-key-fill"></i></span>
+                                    {{ form.confirm_password(class="form-control border-start-0 " + ('is-invalid' if form.confirm_password.errors else ''), placeholder="Confirm password") }}
+                                    {% if form.confirm_password.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.confirm_password.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-premium btn-lg hover-lift">
+                                <i class="bi bi-person-plus-fill me-2"></i> Create Account
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="text-center mt-4">
+                        <p class="text-muted mb-0">Already registered? <a href="{{ url_for('login') }}" class="text-blue-bright fw-bold text-decoration-none">Sign in here</a></p>
+                        <p class="text-muted mt-2 mb-0">Are you a doctor? <a href="{{ url_for('register_doctor') }}" class="text-blue-bright fw-bold text-decoration-none">Register as a Doctor</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

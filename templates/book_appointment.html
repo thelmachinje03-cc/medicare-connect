@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+
+{% block title %}Book Appointment - MediCare Connect{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <div class="card-premium">
+                <div class="card-header-premium text-center bg-light">
+                    <h2 class="text-navy-dark mb-1 fw-800"><i class="bi bi-calendar-plus text-blue-bright"></i> Book Consultation</h2>
+                    <p class="text-muted mb-0">Select your preferred practitioner and schedule an appointment.</p>
+                </div>
+                <div class="card-body p-4">
+                    {% if doctors %}
+                        <form method="POST" action="{{ url_for('book_appointment') }}" novalidate>
+                            <!-- CSRF Token -->
+                            {{ form.csrf_token }}
+
+                            <!-- Doctor Selection -->
+                            <div class="mb-3">
+                                {{ form.doctor_id.label(class="form-label") }}
+                                <div class="input-group">
+                                    <span class="input-group-text bg-white border-end-0 border-silver-light text-muted"><i class="bi bi-person-heart"></i></span>
+                                    {{ form.doctor_id(class="form-select border-start-0 " + ('is-invalid' if form.doctor_id.errors else '')) }}
+                                    {% if form.doctor_id.errors %}
+                                        <div class="invalid-feedback">
+                                            {% for error in form.doctor_id.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <!-- Date Selection -->
+                                <div class="col-md-6 mb-3">
+                                    {{ form.date.label(class="form-label") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0 border-silver-light text-muted"><i class="bi bi-calendar-date"></i></span>
+                                        {{ form.date(class="form-control border-start-0 " + ('is-invalid' if form.date.errors else ''), type="date") }}
+                                        {% if form.date.errors %}
+                                            <div class="invalid-feedback">
+                                                {% for error in form.date.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Time Slot Selection -->
+                                <div class="col-md-6 mb-3">
+                                    {{ form.time.label(class="form-label") }}
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0 border-silver-light text-muted"><i class="bi bi-clock"></i></span>
+                                        {{ form.time(class="form-select border-start-0 " + ('is-invalid' if form.time.errors else '')) }}
+                                        {% if form.time.errors %}
+                                            <div class="invalid-feedback">
+                                                {% for error in form.time.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Reason for Visit -->
+                            <div class="mb-4">
+                                {{ form.reason.label(class="form-label") }}
+                                {{ form.reason(class="form-control " + ('is-invalid' if form.reason.errors else ''), rows="3", placeholder="Briefly describe the symptoms or reason for scheduling this visit...") }}
+                                {% if form.reason.errors %}
+                                    <div class="invalid-feedback">
+                                        {% for error in form.reason.errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Interactive Buttons -->
+                            <div class="d-flex gap-3">
+                                <a href="{{ url_for('patient_dashboard') }}" class="btn btn-premium-secondary flex-grow-1 text-center">
+                                    <i class="bi bi-arrow-left"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-premium flex-grow-1">
+                                    <i class="bi bi-calendar-check-fill me-2"></i> Confirm Booking
+                                </button>
+                            </div>
+                        </form>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="bg-light p-4 rounded-circle d-inline-flex mb-3 text-warning">
+                                <i class="bi bi-exclamation-triangle fs-1"></i>
+                            </div>
+                            <h5 class="text-navy-dark">No medical practitioners available</h5>
+                            <p class="text-muted">Doctors must be registered in the system before appointments can be booked. Please register a doctor user first.</p>
+                            <a href="{{ url_for('patient_dashboard') }}" class="btn btn-premium-secondary mt-2">Back to Dashboard</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script nonce="{{ csp_nonce() }}">
+    document.addEventListener("DOMContentLoaded", function() {
+        const doctorSelect = document.getElementById("doctor_id");
+        const dateInput = document.getElementById("date");
+        const timeSelect = document.getElementById("time");
+        
+        // Save previously selected time if reloading form due to validation errors
+        const previousSelectedTime = "{{ form.time.data or '' }}";
+
+        function fetchAvailableTimes() {
+            const doctorId = doctorSelect.value;
+            const dateValue = dateInput.value;
+
+            if (!doctorId || !dateValue) {
+                timeSelect.innerHTML = '<option value="">-- Select Doctor & Date --</option>';
+                return;
+            }
+
+            timeSelect.innerHTML = '<option value="">Loading slots...</option>';
+
+            fetch(`/get_available_times?doctor_id=${doctorId}&date=${dateValue}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Network response was not ok");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    timeSelect.innerHTML = "";
+
+                    if (data.error) {
+                        timeSelect.innerHTML = `<option value="">Error: ${data.error}</option>`;
+                        return;
+                    }
+
+                    const slots = data.available_times;
+                    if (slots.length === 0) {
+                        timeSelect.innerHTML = '<option value="">No slots available</option>';
+                        return;
+                    }
+
+                    // Add empty placeholder option
+                    const placeholder = document.createElement("option");
+                    placeholder.value = "";
+                    placeholder.textContent = "-- Select Time Slot --";
+                    timeSelect.appendChild(placeholder);
+
+                    slots.forEach(slot => {
+                        const opt = document.createElement("option");
+                        opt.value = slot;
+
+                        // Formatting 24h string to 12h elegant presentation
+                        const parts = slot.split(":");
+                        const hour = parseInt(parts[0], 10);
+                        const mins = parts[1];
+                        const ampm = hour >= 12 ? "PM" : "AM";
+                        const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+                        
+                        opt.textContent = `${displayHour.toString().padStart(2, '0')}:${mins} ${ampm}`;
+                        
+                        // Reselect previous value if applicable
+                        if (slot === previousSelectedTime) {
+                            opt.selected = true;
+                        }
+
+                        timeSelect.appendChild(opt);
+                    });
+                })
+                .catch(error => {
+                    console.error("Error fetching times:", error);
+                    timeSelect.innerHTML = '<option value="">Error loading slots</option>';
+                });
+        }
+
+        // Add Event Listeners
+        doctorSelect.addEventListener("change", fetchAvailableTimes);
+        dateInput.addEventListener("change", fetchAvailableTimes);
+
+        // Prepopulate date with today if empty to keep flow fluid
+        if (!dateInput.value) {
+            const today = new Date();
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            dateInput.value = `${yyyy}-${mm}-${dd}`;
+        }
+
+        // Execute initially
+        fetchAvailableTimes();
+    });
+</script>
+{% endblock %}

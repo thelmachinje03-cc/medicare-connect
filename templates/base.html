@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Immediate theme application to prevent page flicker -->
+    <script nonce="{{ csp_nonce() }}">
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-bs-theme', savedTheme);
+        })();
+    </script>
+    <title>{% block title %}MediCare Connect - Appointment Scheduler{% endblock %}</title>
+    
+    <!-- Google Fonts (Outfit & Inter) - Note: SRI is not supported for Google Fonts as they serve customized webfont files dynamically based on the client's User-Agent. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" integrity="sha384-Ay26V7L8bsJTsX9Sxclnvsn+hkdiwRnrjZJXqKmkIDobPgIIWBOVguEcQQLDuhfN" crossorigin="anonymous">
+    
+    <!-- Custom Premium CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- Responsive Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="bi bi-shield-plus-fill"></i> MediCare Connect
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-lg-center">
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.path == url_for('index') %}active{% endif %}" href="{{ url_for('index') }}">Home</a>
+                    </li>
+                    {% if session.get('user_id') %}
+                        {% if session.get('role') == 'patient' %}
+                            <li class="nav-item">
+                                <a class="nav-link {% if 'dashboard' in request.path %}active{% endif %}" href="{{ url_for('patient_dashboard') }}">Dashboard</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.path == url_for('book_appointment') %}active{% endif %}" href="{{ url_for('book_appointment') }}">Book Appointment</a>
+                            </li>
+                        {% elif session.get('role') == 'doctor' %}
+                            <li class="nav-item">
+                                <a class="nav-link {% if 'dashboard' in request.path %}active{% endif %}" href="{{ url_for('doctor_dashboard') }}">Dashboard</a>
+                            </li>
+                        {% endif %}
+                        <li class="nav-item ms-lg-3">
+                            <span class="text-white-50 me-2 d-none d-lg-inline">Logged in as: <strong>{{ session.get('username') }}</strong></span>
+                            <a class="btn btn-outline-light btn-sm" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Logout</a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.path == url_for('login') %}active{% endif %}" href="{{ url_for('login') }}">Login</a>
+                        </li>
+                        <li class="nav-item ms-lg-2">
+                            <a class="btn btn-premium btn-sm text-white" href="{{ url_for('register') }}">Create Account</a>
+                        </li>
+                    {% endif %}
+                    <li class="nav-item ms-lg-3">
+                        <button id="theme-toggle" type="button" class="btn btn-link nav-link px-2 d-flex align-items-center justify-content-center theme-toggle-btn" title="Toggle Light/Dark Theme">
+                            <i id="theme-toggle-icon" class="bi bi-moon-stars-fill fs-125"></i>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {% if category == 'success' %}
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                        {% elif category == 'danger' %}
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        {% elif category == 'warning' %}
+                            <i class="bi bi-exclamation-circle-fill me-2"></i>
+                        {% else %}
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                        {% endif %}
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content Block -->
+    <main class="flex-grow-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Reusable Custom Confirmation Modal -->
+    <div class="modal fade" id="customConfirmModal" tabindex="-1" aria-labelledby="customConfirmModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg modal-confirm-content">
+                <div class="modal-header bg-navy-dark text-white border-0 py-3">
+                    <h5 class="modal-title fw-700" id="customConfirmModalLabel"><i class="bi bi-question-circle-fill text-blue-bright me-2"></i> Confirm Action</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <p id="customConfirmMessage" class="fs-5 mb-0 text-navy-dark fw-medium">Are you sure?</p>
+                </div>
+                <div class="modal-footer border-0 p-3 bg-light d-flex gap-2">
+                    <button type="button" class="btn btn-premium-secondary flex-grow-1" data-bs-dismiss="modal">No, Cancel</button>
+                    <button type="button" id="customConfirmBtn" class="btn btn-premium flex-grow-1">Yes, Proceed</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container text-center">
+            <div class="row">
+                <div class="col-md-6 text-md-start mb-3 mb-md-0">
+                    <h5 class="text-white"><i class="bi bi-shield-plus-fill text-blue-bright"></i> MediCare Connect</h5>
+                    <p class="mb-0">A simple, reliable patient-doctor scheduling platform built for modern healthcare.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-1">&copy; 2026 MediCare Connect. All rights reserved.</p>
+                    <p class="mb-0"><a href="#">Privacy Policy</a> &middot; <a href="#">Terms of Service</a> &middot; <a href="#">Support</a></p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap 5 Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+    <script nonce="{{ csp_nonce() }}">
+        document.addEventListener("DOMContentLoaded", function() {
+            // Theme Toggle Logic
+            const themeToggleBtn = document.getElementById('theme-toggle');
+            const themeToggleIcon = document.getElementById('theme-toggle-icon');
+            
+            if (themeToggleBtn && themeToggleIcon) {
+                // Initialize icon state based on current document theme attribute
+                const currentTheme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+                themeToggleIcon.className = currentTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+                
+                themeToggleBtn.addEventListener('click', function() {
+                    const activeTheme = document.documentElement.getAttribute('data-bs-theme') || 'light';
+                    const newTheme = activeTheme === 'dark' ? 'light' : 'dark';
+                    
+                    document.documentElement.setAttribute('data-bs-theme', newTheme);
+                    localStorage.setItem('theme', newTheme);
+                    
+                    themeToggleIcon.className = newTheme === 'dark' ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+                });
+            }
+
+            let formToSubmit = null;
+            const confirmModalEl = document.getElementById('customConfirmModal');
+            if (!confirmModalEl) return;
+            const confirmModal = new bootstrap.Modal(confirmModalEl);
+            const confirmMessage = document.getElementById('customConfirmMessage');
+            const confirmBtn = document.getElementById('customConfirmBtn');
+
+            // Intercept submit on forms with the custom confirmation class
+            document.addEventListener('submit', function(e) {
+                const form = e.target;
+                if (form.classList.contains('confirm-submit')) {
+                    if (formToSubmit === form) {
+                        return; // proceed since user clicked confirm
+                    }
+                    e.preventDefault(); // stop submission
+                    formToSubmit = form;
+                    const message = form.getAttribute('data-confirm') || 'Are you sure you want to proceed?';
+                    confirmMessage.textContent = message;
+                    confirmModal.show();
+                }
+            });
+
+            confirmBtn.addEventListener('click', function() {
+                if (formToSubmit) {
+                    confirmModal.hide();
+                    formToSubmit.submit();
+                }
+            });
+
+            confirmModalEl.addEventListener('hidden.bs.modal', function () {
+                formToSubmit = null;
+            });
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

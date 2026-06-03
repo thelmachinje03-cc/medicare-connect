@@ -1,0 +1,228 @@
+{% extends 'base.html' %}
+
+{% block title %}Doctor Dashboard - MediCare Connect{% endblock %}
+
+{% block content %}
+<div class="premium-hero hero-compact">
+    <div class="container text-center text-md-start">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <span class="badge bg-white text-primary px-3 py-2 mb-2 fw-bold text-uppercase border-silver-accent">Clinical Portal</span>
+                <h1 class="display-5 font-weight-bold mb-1">Welcome, Dr. {{ doctor.username }}</h1>
+                <p class="lead mb-0 text-white-50"><i class="bi bi-tag-fill me-1"></i> Specialization: <strong>{{ doctor.specialization }}</strong> &middot; Consultation Fee: <strong>{{ doctor.fee | int }} FCFA</strong></p>
+            </div>
+            <div class="col-md-4 text-center text-md-end mt-3 mt-md-0">
+                <div class="bg-white bg-opacity-10 text-white p-3 rounded-3 border border-white border-opacity-25 d-inline-block">
+                    <h6 class="mb-0 text-uppercase text-white-50 stat-header-compact">Today's Date</h6>
+                    <span class="h5 mb-0 fw-bold"><i class="bi bi-clock-fill text-blue-bright me-2"></i> {{ now.strftime("%A, %b %d, %Y") }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container py-5">
+    
+    <!-- TODAY'S APPOINTMENTS SECTION -->
+    <div class="card-premium mb-5 border-start border-5 border-primary">
+        <div class="card-header-premium bg-light d-flex justify-content-between align-items-center">
+            <h3 class="h4 mb-0 text-navy-dark"><i class="bi bi-calendar-check-fill text-primary me-2"></i> Today's Schedule</h3>
+            <span class="badge bg-primary text-white px-3 py-2 fw-bold rounded-pill">{{ today_appointments|length }} Active Today</span>
+        </div>
+        <div class="card-body p-0">
+            {% if today_appointments %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 min-w-800">
+                        <thead class="table-light">
+                            <tr class="text-secondary th-custom">
+                                <th class="ps-4">Patient Name</th>
+                                <th>Contact Number</th>
+                                <th>Scheduled Time</th>
+                                <th>Purpose of Visit</th>
+                                <th>Status</th>
+                                <th class="text-end pe-4">Clinical Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in today_appointments %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-circle me-3 avatar-circle">
+                                                <i class="bi bi-person-fill"></i>
+                                            </div>
+                                            <span class="fw-bold text-navy-dark">{{ a.patient_username }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold text-neutral-dark"><i class="bi bi-telephone-fill text-muted me-1"></i> {{ a.patient_phone }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold text-primary"><i class="bi bi-clock-history me-1"></i> {{ a.time.strftime("%I:%M %p") if hasattr(a.time, 'strftime') else a.time }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted text-truncate d-inline-block max-w-250" title="{{ a.reason }}">{{ a.reason }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-status-{{ a.status }} text-uppercase badge-status-custom">
+                                            {{ a.status }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        {% if a.status in ('scheduled', 'confirmed') %}
+                                            {% if a.status == 'scheduled' %}
+                                                <form action="{{ url_for('confirm_appointment', appointment_id=a.id) }}" method="POST" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="btn btn-success btn-sm border-2 hover-lift me-1">
+                                                        <i class="bi bi-check-lg"></i> Confirm
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                            
+                                            <a href="{{ url_for('reschedule_appointment', appointment_id=a.id) }}" class="btn btn-outline-secondary btn-sm border-2 hover-lift me-1">
+                                                <i class="bi bi-calendar-range"></i> Reschedule
+                                            </a>
+
+                                            <form action="{{ url_for('reject_appointment', appointment_id=a.id) }}" method="POST" class="d-inline confirm-submit" data-confirm="Are you sure you want to reject this appointment?">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm border-2 hover-lift me-1">
+                                                    <i class="bi bi-x-circle"></i> Reject
+                                                </button>
+                                            </form>
+
+                                            <form action="{{ url_for('complete_appointment', appointment_id=a.id) }}" method="POST" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-outline-primary btn-sm border-2 hover-lift">
+                                                    <i class="bi bi-clipboard2-pulse"></i> Complete
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <form action="{{ url_for('delete_appointment', appointment_id=a.id) }}" method="POST" class="d-inline confirm-submit" data-confirm="Are you sure you want to delete this appointment from clinical history?">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-outline-dark btn-sm border-2 hover-lift">
+                                                    <i class="bi bi-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="bg-light p-4 rounded-circle d-inline-flex mb-3 text-muted">
+                        <i class="bi bi-calendar-x fs-1"></i>
+                    </div>
+                    <h5 class="text-navy-dark">No appointments scheduled for today</h5>
+                    <p class="text-muted">Enjoy your day! When new patient bookings arrive, they will appear here in real-time.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- UPCOMING / OTHER APPOINTMENTS SECTION -->
+    <div class="card-premium">
+        <div class="card-header-premium bg-light d-flex justify-content-between align-items-center">
+            <h3 class="h4 mb-0 text-navy-dark"><i class="bi bi-calendar3 text-blue-bright me-2"></i> Upcoming & History</h3>
+            <span class="badge badge-premium">{{ upcoming_appointments|length }} Total Bookings</span>
+        </div>
+        <div class="card-body p-0">
+            {% if upcoming_appointments %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 min-w-800">
+                        <thead class="table-light">
+                            <tr class="text-secondary th-custom">
+                                <th class="ps-4">Patient Name</th>
+                                <th>Contact Number</th>
+                                <th>Date</th>
+                                <th>Scheduled Time</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th class="text-end pe-4">Clinical Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in upcoming_appointments %}
+                                <tr>
+                                    <td class="ps-4">
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-light text-secondary p-2 rounded-circle me-3 avatar-circle">
+                                                <i class="bi bi-person-fill"></i>
+                                            </div>
+                                            <span class="fw-bold text-navy-dark">{{ a.patient_username }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold text-neutral-dark"><i class="bi bi-telephone-fill text-muted me-1"></i> {{ a.patient_phone }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold text-neutral-dark"><i class="bi bi-calendar-event text-muted me-1"></i> {{ a.date.strftime("%b %d, %Y") if hasattr(a.date, 'strftime') else a.date }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="fw-semibold text-neutral-dark"><i class="bi bi-clock text-muted me-1"></i> {{ a.time.strftime("%I:%M %p") if hasattr(a.time, 'strftime') else a.time }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="text-muted text-truncate d-inline-block max-w-200" title="{{ a.reason }}">{{ a.reason }}</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-status-{{ a.status }} text-uppercase badge-status-custom">
+                                            {{ a.status }}
+                                        </span>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        {% if a.status in ('scheduled', 'confirmed') %}
+                                            {% if a.status == 'scheduled' %}
+                                                <form action="{{ url_for('confirm_appointment', appointment_id=a.id) }}" method="POST" class="d-inline">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="btn btn-success btn-sm border-2 hover-lift me-1">
+                                                        <i class="bi bi-check-lg"></i> Confirm
+                                                    </button>
+                                                </form>
+                                            {% endif %}
+                                            
+                                            <a href="{{ url_for('reschedule_appointment', appointment_id=a.id) }}" class="btn btn-outline-secondary btn-sm border-2 hover-lift me-1">
+                                                <i class="bi bi-calendar-range"></i> Reschedule
+                                            </a>
+
+                                            <form action="{{ url_for('reject_appointment', appointment_id=a.id) }}" method="POST" class="d-inline confirm-submit" data-confirm="Are you sure you want to reject this appointment?">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-outline-danger btn-sm border-2 hover-lift me-1">
+                                                    <i class="bi bi-x-circle"></i> Reject
+                                                </button>
+                                            </form>
+
+                                            <form action="{{ url_for('complete_appointment', appointment_id=a.id) }}" method="POST" class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-outline-primary btn-sm border-2 hover-lift">
+                                                    <i class="bi bi-clipboard2-pulse"></i> Complete
+                                                </button>
+                                            </form>
+                                        {% else %}
+                                            <form action="{{ url_for('delete_appointment', appointment_id=a.id) }}" method="POST" class="d-inline confirm-submit" data-confirm="Are you sure you want to delete this appointment from clinical history?">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <button type="submit" class="btn btn-outline-dark btn-sm border-2 hover-lift">
+                                                    <i class="bi bi-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="bg-light p-4 rounded-circle d-inline-flex mb-3 text-muted">
+                        <i class="bi bi-journal-medical fs-1"></i>
+                    </div>
+                    <h5 class="text-navy-dark">No other scheduled appointments</h5>
+                    <p class="text-muted">A listing of all upcoming bookings and historical consultation records will appear here.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

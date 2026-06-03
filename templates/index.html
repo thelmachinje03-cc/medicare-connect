@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block title %}MediCare Connect – Book appointments with trusted doctors{% endblock %}
+
+{% block content %}
+<!-- Premium Welcome Hero -->
+<div class="premium-hero">
+    <div class="container text-center py-5">
+        <h1 class="display-4 font-weight-bold mb-3 welcome-title">MediCare Connect – Book appointments with trusted doctors</h1>
+        <p class="lead mb-4 mx-auto welcome-subtitle">
+            A simple platform connecting patients with healthcare providers across Cameroon
+        </p>
+        
+        <!-- Bullets banner -->
+        <div class="d-inline-block bg-white bg-opacity-10 text-white px-4 py-2 rounded-pill mb-4 border border-white border-opacity-25 shadow-sm">
+            <span class="fw-semibold">✓ Find the right doctor &nbsp;|&nbsp; ✓ Choose your preferred time &nbsp;|&nbsp; ✓ Manage all appointments in one place</span>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3">
+            {% if session.get('user_id') %}
+                {% if session.get('role') == 'patient' %}
+                    <a href="{{ url_for('patient_dashboard') }}" class="btn btn-light btn-lg px-4 py-3 hover-lift text-primary fw-600"><i class="bi bi-speedometer2"></i> Go to Dashboard</a>
+                    <a href="{{ url_for('book_appointment') }}" class="btn btn-premium btn-lg px-4 py-3 hover-lift border-white"><i class="bi bi-calendar-plus"></i> Book Appointment Now</a>
+                {% else %}
+                    <a href="{{ url_for('doctor_dashboard') }}" class="btn btn-light btn-lg px-4 py-3 hover-lift text-primary fw-600"><i class="bi bi-speedometer2"></i> Dashboard</a>
+                {% endif %}
+            {% else %}
+                <a href="{{ url_for('register') }}" class="btn btn-light btn-lg px-4 py-3 hover-lift text-primary fw-600"><i class="bi bi-person-plus"></i> Create Account</a>
+                <a href="{{ url_for('login') }}" class="btn btn-premium btn-lg px-4 py-3 hover-lift border-white"><i class="bi bi-box-arrow-in-right"></i> Login</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="container py-5">
+    <div class="text-center mb-5">
+        <h2 class="h1 mb-2 text-navy-dark fw-800">Our Clinical Solutions</h2>
+        <p class="text-muted mx-auto max-w-600">Designed to connect patients with clinical services seamlessly.</p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Feature 1: Convenient Booking -->
+        <div class="col-md-4">
+            <div class="card-premium h-100 p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-3 me-3">
+                        <i class="bi bi-telephone-inbound-fill fs-2"></i>
+                    </div>
+                    <h3 class="h4 mb-0 text-navy-dark">Convenient Booking</h3>
+                </div>
+                <p class="text-muted">
+                    Find and book appointments instantly with primary care doctors in your community. No more waiting in long clinic lines.
+                </p>
+            </div>
+        </div>
+
+        <!-- Feature 2: Vetted Doctors -->
+        <div class="col-md-4">
+            <div class="card-premium h-100 p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-3 me-3">
+                        <i class="bi bi-person-badge-fill fs-2"></i>
+                    </div>
+                    <h3 class="h4 mb-0 text-navy-dark">Vetted Doctors</h3>
+                </div>
+                <p class="text-muted">
+                    Connect with clinical practitioners who are certified and highly rated, ensuring you get the best medical guidance.
+                </p>
+            </div>
+        </div>
+
+        <!-- Feature 3: Smart Schedules -->
+        <div class="col-md-4">
+            <div class="card-premium h-100 p-4">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-3 me-3">
+                        <i class="bi bi-calendar-check-fill fs-2"></i>
+                    </div>
+                    <h3 class="h4 mb-0 text-navy-dark">Reliable Scheduling</h3>
+                </div>
+                <p class="text-muted">
+                    Experience scheduling with zero conflicts. Our slot booking engine fetches free times dynamically to ensure hassle-free calendar alignment.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Highlight CTA Section -->
+<div class="bg-light border-top border-bottom border-silver-light py-5">
+    <div class="container py-4">
+        <div class="row align-items-center">
+            <div class="col-lg-8 text-center text-lg-start mb-4 mb-lg-0">
+                <h3 class="h2 text-navy-dark mb-2 fw-750">Ready to schedule your first consultation?</h3>
+                <p class="text-muted mb-0">Join thousands of patients and healthcare practitioners enjoying stress-free connection pipelines.</p>
+            </div>
+            <div class="col-lg-4 text-center text-lg-end">
+                {% if not session.get('user_id') %}
+                    <a href="{{ url_for('register') }}" class="btn btn-premium btn-lg hover-lift px-5">Get Started Free</a>
+                {% else %}
+                    <a href="{{ url_for('book_appointment') }}" class="btn btn-premium btn-lg hover-lift px-5">Book Now</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
